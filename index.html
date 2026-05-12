@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASS BEATER 3000</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --primary: #fbbf24; /* Aggressive Gold */
+            --bg: #000000;
+            --card: #111111;
+            --text: #ffffff;
+            --accent: #ef4444; /* Blood Red */
+        }
+
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            text-transform: uppercase;
+            overflow: hidden;
+        }
+
+        .container { text-align: center; border: 4px solid var(--primary); padding: 3rem; background: var(--card); box-shadow: 20px 20px 0px var(--accent); }
+
+        h1 { font-size: 3rem; margin-bottom: 0; letter-spacing: -2px; }
+        p { color: var(--primary); font-weight: bold; margin-bottom: 2rem; }
+
+        #counter {
+            font-size: 8rem;
+            font-weight: 900;
+            margin: 20px 0;
+            text-shadow: 5px 5px 0px var(--accent);
+        }
+
+        .btn-group { display: flex; gap: 15px; justify-content: center; }
+
+        .beat-btn {
+            background: var(--primary);
+            color: black;
+            border: none;
+            padding: 20px 40px;
+            font-size: 1.5rem;
+            font-weight: 900;
+            cursor: pointer;
+            transition: 0.1s;
+            box-shadow: 5px 5px 0px white;
+        }
+
+        .beat-btn.minus { background: var(--accent); color: white; }
+
+        .beat-btn:active { transform: translate(5px, 5px); box-shadow: 0px 0px 0px white; }
+
+        .reset-link {
+            margin-top: 2rem;
+            color: #444;
+            text-decoration: none;
+            font-size: 0.7rem;
+            display: block;
+        }
+
+        .reset-link:hover { color: var(--accent); }
+        
+        .rank { font-size: 1.2rem; color: var(--accent); margin-top: 10px; min-height: 1.5rem; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>ASS BEATER</h1>
+        <p>Times Shreyas Got Handled</p>
+        
+        <div id="counter">0</div>
+        <div class="rank" id="rank-text">WASHED-UP ENGR</div>
+        
+        <div class="btn-group">
+            <button class="beat-btn minus" id="minus-btn">DECREASE</button>
+            <button class="beat-btn" id="beat-btn">I BEAT ASS</button>
+        </div>
+        
+        <a href="#" class="reset-link" id="reset-btn">Wipe the slate (Reset)</a>
+    </div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, doc, setDoc, onSnapshot, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    // FIREBASE CONFIGURATION
+    const firebaseConfig = {
+      apiKey: "AIzaSyDx8q_rUrJv9hLQvHxJmnZ0m39bkhBK-UU",
+      authDomain: "firetrack-29d9e.firebaseapp.com",
+      projectId: "firetrack-29d9e",
+      storageBucket: "firetrack-29d9e.firebasestorage.app",
+      messagingSenderId: "901288643060",
+      appId: "1:901288643060:web:5ca6fbc4dd6fa4b6c851a1"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    
+    const docRef = doc(db, "projects", "ass_beater_global");
+    const counterEl = document.getElementById('counter');
+    const rankEl = document.getElementById('rank-text');
+
+    const ranks = [
+        { min: 0, text: "WASHED-UP ENGR" },
+        { min: 5, text: "CALICUT CONTENDER" },
+        { min: 15, text: "GE VERNOVA THREAT" },
+        { min: 30, text: "VIOLIN VIGILANTE" },
+        { min: 50, text: "ABSOLUTE GOAL SLAYER" },
+        { min: 100, text: "ASCENDED GUPTA" }
+    ];
+
+    // INITIALIZE DB IF EMPTY
+    async function initDB() {
+        const snap = await getDoc(docRef);
+        if (!snap.exists()) {
+            await setDoc(docRef, { 
+                count: 0, 
+                password: "shreyassbeat" // Password stored in DB as requested
+            });
+        }
+    }
+    initDB();
+
+    // LIVE SYNC
+    onSnapshot(docRef, (doc) => {
+        if (doc.exists()) {
+            const val = doc.data().count || 0;
+            counterEl.innerText = val;
+            updateRank(val);
+        }
+    });
+
+    function updateRank(val) {
+        const currentRank = [...ranks].reverse().find(r => val >= r.min);
+        rankEl.innerText = currentRank ? currentRank.text : ranks[0].text;
+    }
+
+    // AUTHENTICATION HELPER
+    async function checkPass() {
+        const input = prompt("Enter the Secret Password:");
+        const snap = await getDoc(docRef);
+        const correctPass = snap.data().password;
+        
+        if (input === correctPass) return true;
+        alert("ACCESS DENIED.");
+        return false;
+    }
+
+    // BUTTON ACTIONS
+    document.getElementById('beat-btn').addEventListener('click', async () => {
+        if (await checkPass()) {
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#fbbf24', '#ef4444'] });
+            await updateDoc(docRef, { count: increment(1) });
+        }
+    });
+
+    document.getElementById('minus-btn').addEventListener('click', async () => {
+        if (await checkPass()) {
+            await updateDoc(docRef, { count: increment(-1) });
+        }
+    });
+
+    document.getElementById('reset-btn').addEventListener('click', async (e) => {
+        e.preventDefault();
+        if (await checkPass()) {
+            if(confirm("Wipe all stats?")) {
+                await updateDoc(docRef, { count: 0 });
+            }
+        }
+    });
+</script>
+</body>
+</html>
