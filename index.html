@@ -272,13 +272,13 @@
     }
 
     window.handleAction = async (user, change) => {
-        const input = prompt(`ENTER PASSWORD FOR ${user.toUpperCase()}:`);
+        const input = prompt(`Enter SECRET Passcode For ${user.toUpperCase()}:`);
         const snap = await getDoc(refs[user]);
         if (input === snap.data().password) {
             if(change > 0) confetti({ particleCount: 80, spread: 50, origin: { y: 0.8 }, colors: ['#fbbf24', '#ef4444'] });
             await updateDoc(refs[user], { count: increment(change) });
         } else {
-            alert("WRONG PASSWORD.");
+            alert("galat PASSWORD smarty chaddi.");
         }
     };
 
