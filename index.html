@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ASS BEATER 3000</title>
+    <title>ASS BEATER 3000 - DUO</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         :root {
@@ -12,6 +12,7 @@
             --card: #111111;
             --text: #ffffff;
             --accent: #ef4444;
+            --secondary: #3b82f6;
         }
 
         * { box-sizing: border-box; }
@@ -21,100 +22,200 @@
             background: var(--bg);
             color: var(--text);
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: center;
             min-height: 100vh;
             margin: 0;
             text-transform: uppercase;
-            overflow-x: hidden;
+        }
+
+        /* Settings Header */
+        .header-tools {
+            width: 100%;
+            display: flex;
+            justify-content: flex-end;
+            padding: 15px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .settings-btn {
+            background: var(--card);
+            color: var(--primary);
+            border: 2px solid var(--primary);
+            padding: 8px 12px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+
+        .main-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+            width: 100%;
         }
 
         .container { 
             text-align: center; 
             border: 4px solid var(--primary); 
-            padding: 2rem; 
+            padding: 1.5rem; 
             background: var(--card); 
             box-shadow: 10px 10px 0px var(--accent);
-            width: 90%;
-            max-width: 500px;
-            margin: 20px;
+            width: 100%;
+            max-width: 400px;
         }
 
-        h1 { font-size: clamp(1.5rem, 8vw, 3rem); margin-bottom: 0; letter-spacing: -1px; }
-        p { color: var(--primary); font-weight: bold; margin-bottom: 1.5rem; font-size: 0.8rem; letter-spacing: 1px; }
-
-        #counter {
-            font-size: clamp(4rem, 25vw, 8rem);
+        h1 { font-size: 1.8rem; margin: 0; letter-spacing: -1px; }
+        .target-name { color: var(--primary); font-size: 1.2rem; margin: 5px 0; border-bottom: 2px solid #333; padding-bottom: 5px;}
+        
+        .counter {
+            font-size: 5rem;
             font-weight: 900;
             margin: 10px 0;
-            text-shadow: 4px 4px 0px var(--accent);
+            text-shadow: 3px 3px 0px var(--accent);
             line-height: 1;
         }
 
         .rank { 
-            font-size: clamp(0.8rem, 4vw, 1.2rem); 
+            font-size: 0.9rem; 
             color: var(--accent); 
-            margin-bottom: 2rem; 
+            margin-bottom: 1.5rem; 
             min-height: 1.5rem; 
             font-weight: bold;
         }
 
         .btn-group { 
             display: flex; 
-            flex-direction: column; 
-            gap: 15px; 
+            gap: 10px; 
             width: 100%;
-        }
-
-        /* Desktop specific layout */
-        @media (min-width: 600px) {
-            .btn-group { flex-direction: row; }
-            .container { box-shadow: 20px 20px 0px var(--accent); padding: 3rem; }
         }
 
         .beat-btn {
             background: var(--primary);
             color: black;
             border: none;
-            padding: 18px;
-            font-size: 1.2rem;
+            padding: 15px 5px;
+            font-size: 0.9rem;
             font-weight: 900;
             cursor: pointer;
-            transition: 0.1s;
-            box-shadow: 5px 5px 0px white;
-            width: 100%;
+            box-shadow: 4px 4px 0px white;
             flex: 1;
-            -webkit-tap-highlight-color: transparent;
         }
 
         .beat-btn.minus { background: var(--accent); color: white; }
-        .beat-btn:active { transform: translate(3px, 3px); box-shadow: 0px 0px 0px white; }
+        .beat-btn:active { transform: translate(2px, 2px); box-shadow: 0px 0px 0px white; }
 
-        .reset-link {
-            margin-top: 2rem;
-            color: #555;
-            text-decoration: none;
-            font-size: 0.7rem;
-            display: block;
-            padding: 10px;
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
         }
+
+        .modal-content {
+            background: var(--card);
+            border: 4px solid var(--primary);
+            padding: 2rem;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .modal input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            background: #222;
+            border: 1px solid var(--primary);
+            color: white;
+            text-transform: none; /* Passwords shouldn't be forced uppercase */
+        }
+
+        .pw-container { position: relative; }
+        .toggle-pw {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            font-size: 0.7rem;
+            color: var(--primary);
+        }
+
+        .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>ASS BEATER</h1>
-        <p>Pending Actions to be Delivered To Shreyas</p>
-        
-        <div id="counter">0</div>
-        <div class="rank" id="rank-text">PEACEFUL CITIZEN</div>
-        
-        <div class="btn-group">
-            <button class="beat-btn minus" id="minus-btn">PARDON (-1)</button>
-            <button class="beat-btn" id="beat-btn">BEAT ASS (+1)</button>
+    <div class="header-tools">
+        <button class="settings-btn" onclick="openModal()">⚙️ CHANGE PASSWORDS</button>
+    </div>
+
+    <div class="main-wrapper">
+        <!-- SHREYAS SECTION -->
+        <div class="container" id="container-shreyas">
+            <h1>ASS BEATER</h1>
+            <div class="target-name">TARGET: RAM</div>
+            <p style="font-size: 0.7rem;">Only Shreyas can access</p>
+            
+            <div class="counter" id="counter-ram">0</div>
+            <div class="rank" id="rank-ram">PEACEFUL CITIZEN</div>
+            
+            <div class="btn-group">
+                <button class="beat-btn minus" onclick="handleAction('ram', -1)">PARDON</button>
+                <button class="beat-btn" onclick="handleAction('ram', 1)">BEAT ASS</button>
+            </div>
+            <button onclick="handleReset('ram')" style="background:none; border:none; color:#555; margin-top:15px; cursor:pointer; font-size: 0.7rem;">Wipe Slate</button>
         </div>
-        
-        <a href="#" class="reset-link" id="reset-btn">Wipe the slate</a>
+
+        <!-- RAM SECTION -->
+        <div class="container" id="container-ram">
+            <h1>ASS BEATER</h1>
+            <div class="target-name">TARGET: SHREYAS</div>
+            <p style="font-size: 0.7rem;">Only Ram can access</p>
+            
+            <div class="counter" id="counter-shreyas">0</div>
+            <div class="rank" id="rank-shreyas">PEACEFUL CITIZEN</div>
+            
+            <div class="btn-group">
+                <button class="beat-btn minus" onclick="handleAction('shreyas', -1)">PARDON</button>
+                <button class="beat-btn" onclick="handleAction('shreyas', 1)">BEAT ASS</button>
+            </div>
+            <button onclick="handleReset('shreyas')" style="background:none; border:none; color:#555; margin-top:15px; cursor:pointer; font-size: 0.7rem;">Wipe Slate</button>
+        </div>
+    </div>
+
+    <!-- Password Modal -->
+    <div id="pwModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTitle">CHANGE PASSWORD</h3>
+            <select id="userSelect" style="width:100%; padding:10px; margin-bottom:10px;">
+                <option value="shreyas">Shreyas (Beating Ram)</option>
+                <option value="ram">Ram (Beating Shreyas)</option>
+            </select>
+            
+            <div class="pw-container">
+                <input type="password" id="currPass" placeholder="Current Password">
+                <span class="toggle-pw" onclick="toggleVisibility('currPass')">SHOW</span>
+            </div>
+            
+            <div class="pw-container">
+                <input type="password" id="newPass" placeholder="New Password">
+                <span class="toggle-pw" onclick="toggleVisibility('newPass')">SHOW</span>
+            </div>
+
+            <div class="modal-btns">
+                <button class="beat-btn" style="background:#444; color:white;" onclick="closeModal()">CANCEL</button>
+                <button class="beat-btn" onclick="updatePassword()">SAVE</button>
+            </div>
+        </div>
     </div>
 
 <script type="module">
@@ -132,9 +233,12 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const docRef = doc(db, "projects", "ass_beater_global");
-    const counterEl = document.getElementById('counter');
-    const rankEl = document.getElementById('rank-text');
+    
+    // Document references
+    const refs = {
+        shreyas: doc(db, "projects", "shreyas_stats"), // Shreyas hitting Ram
+        ram: doc(db, "projects", "ram_stats")         // Ram hitting Shreyas
+    };
 
     const ranks = [
         { min: 0, text: "PEACEFUL CITIZEN" },
@@ -146,54 +250,77 @@
     ];
 
     async function initDB() {
-        const snap = await getDoc(docRef);
-        if (!snap.exists()) {
-            await setDoc(docRef, { count: 0, password: "shreyassbeat" });
+        for (const key in refs) {
+            const snap = await getDoc(refs[key]);
+            if (!snap.exists()) {
+                // Default Shreyas to 1234, Ram stays original
+                const defaultPass = (key === 'shreyas') ? "1234" : "shreyassbeat";
+                await setDoc(refs[key], { count: 0, password: defaultPass });
+            }
         }
     }
     initDB();
 
-    onSnapshot(docRef, (doc) => {
+    // Listeners for UI updates
+    onSnapshot(refs.shreyas, (doc) => updateUI('ram', doc));
+    onSnapshot(refs.ram, (doc) => updateUI('shreyas', doc));
+
+    function updateUI(targetId, doc) {
         if (doc.exists()) {
             const val = doc.data().count || 0;
-            counterEl.innerText = val;
-            updateRank(val);
+            document.getElementById(`counter-${targetId}`).innerText = val;
+            const currentRank = [...ranks].reverse().find(r => val >= r.min);
+            document.getElementById(`rank-${targetId}`).innerText = currentRank ? currentRank.text : ranks[0].text;
         }
-    });
-
-    function updateRank(val) {
-        const currentRank = [...ranks].reverse().find(r => val >= r.min);
-        rankEl.innerText = currentRank ? currentRank.text : ranks[0].text;
     }
 
-    async function checkPass() {
-        const input = prompt("Enter the Secret Password:");
-        const snap = await getDoc(docRef);
-        const correctPass = snap.data().password;
-        if (input === correctPass) return true;
-        alert("ACCESS DENIED SMARTY PANTS.");
-        return false;
-    }
-
-    document.getElementById('beat-btn').addEventListener('click', async () => {
-        if (await checkPass()) {
-            confetti({ particleCount: 100, spread: 60, origin: { y: 0.7 }, colors: ['#fbbf24', '#ef4444'] });
-            await updateDoc(docRef, { count: increment(1) });
+    // Global Handlers for buttons
+    window.handleAction = async (user, change) => {
+        const input = prompt(`Enter Password for ${user.toUpperCase()}:`);
+        const snap = await getDoc(refs[user]);
+        if (input === snap.data().password) {
+            if(change > 0) confetti({ particleCount: 100, spread: 60, origin: { y: 0.7 }, colors: ['#fbbf24', '#ef4444'] });
+            await updateDoc(refs[user], { count: increment(change) });
+        } else {
+            alert("ACCESS DENIED.");
         }
-    });
+    };
 
-    document.getElementById('minus-btn').addEventListener('click', async () => {
-        if (await checkPass()) {
-            await updateDoc(docRef, { count: increment(-1) });
+    window.handleReset = async (user) => {
+        const input = prompt(`Enter Password to RESET ${user.toUpperCase()}:`);
+        const snap = await getDoc(refs[user]);
+        if (input === snap.data().password && confirm("Wipe all stats?")) {
+            await updateDoc(refs[user], { count: 0 });
         }
-    });
+    };
 
-    document.getElementById('reset-btn').addEventListener('click', async (e) => {
-        e.preventDefault();
-        if (await checkPass()) {
-            if(confirm("Wipe all stats?")) await updateDoc(docRef, { count: 0 });
+    // Modal & Password logic
+    window.openModal = () => document.getElementById('pwModal').style.display = 'flex';
+    window.closeModal = () => document.getElementById('pwModal').style.display = 'none';
+    
+    window.toggleVisibility = (id) => {
+        const el = document.getElementById(id);
+        el.type = el.type === "password" ? "text" : "password";
+    };
+
+    window.updatePassword = async () => {
+        const user = document.getElementById('userSelect').value;
+        const curr = document.getElementById('currPass').value;
+        const next = document.getElementById('newPass').value;
+        
+        if(!next) return alert("New password cannot be empty");
+
+        const snap = await getDoc(refs[user]);
+        if (curr === snap.data().password) {
+            await updateDoc(refs[user], { password: next });
+            alert("Password Updated!");
+            closeModal();
+            document.getElementById('currPass').value = "";
+            document.getElementById('newPass').value = "";
+        } else {
+            alert("Current password incorrect.");
         }
-    });
+    };
 </script>
 </body>
 </html>
