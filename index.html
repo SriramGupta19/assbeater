@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ASS BEATER 3000 - DUO</title>
+    <title>ASS BEATER 3000 - TURBO</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         :root {
@@ -12,6 +12,8 @@
             --card: #111111;
             --text: #ffffff;
             --accent: #ef4444;
+            --shreyas-color: #3b82f6; /* Blue for Shreyas */
+            --ram-color: #ef4444;    /* Red for Ram */
         }
 
         * { box-sizing: border-box; }
@@ -26,32 +28,60 @@
             min-height: 100vh;
             margin: 0;
             text-transform: uppercase;
+            overflow-x: hidden;
         }
 
-        /* Floating Settings Anchor */
+        /* --- NEW: POWER BAR --- */
+        .war-zone {
+            width: 100%;
+            max-width: 830px;
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            background: var(--bg);
+            z-index: 100;
+        }
+        .power-bar-container {
+            height: 30px;
+            background: #222;
+            border: 3px solid var(--primary);
+            display: flex;
+            overflow: hidden;
+            box-shadow: 0 0 15px rgba(251, 191, 36, 0.3);
+        }
+        #bar-shreyas { width: 50%; background: var(--shreyas-color); transition: width 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        #bar-ram { width: 50%; background: var(--ram-color); transition: width 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+        /* --- ANIMATIONS --- */
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            100% { transform: translate(0, 0) rotate(0deg); }
+        }
+        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+
         .settings-anchor {
             position: fixed;
-            top: 20px;
+            top: 60px;
             right: 20px;
             z-index: 1000;
             background: var(--card);
             border: 2px solid var(--primary);
             padding: 10px;
             cursor: pointer;
-            font-size: 1.5rem;
-            line-height: 1;
             box-shadow: 4px 4px 0px var(--accent);
-            transition: 0.1s;
         }
-        
-        .settings-anchor:active { transform: translate(2px, 2px); box-shadow: 0px 0px 0px; }
 
         .main-wrapper {
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 30px;
-            padding: 80px 20px 40px 20px;
+            padding: 20px;
             width: 100%;
         }
 
@@ -63,11 +93,9 @@
             box-shadow: 10px 10px 0px var(--accent);
             width: 100%;
             max-width: 400px;
+            transition: transform 0.1s;
         }
 
-        h1 { font-size: 1.8rem; margin: 0; letter-spacing: -1px; }
-        .target-label { color: var(--primary); font-size: 1.2rem; margin: 5px 0; border-bottom: 2px solid #333; padding-bottom: 5px;}
-        
         .counter {
             font-size: 5rem;
             font-weight: 900;
@@ -78,32 +106,28 @@
 
         .rank { 
             font-size: 0.9rem; 
-            color: var(--accent); 
+            color: var(--primary); 
             margin-bottom: 1.5rem; 
-            min-height: 1.5rem; 
             font-weight: bold;
+            letter-spacing: 2px;
         }
 
-        .btn-group { 
-            display: flex; 
-            gap: 10px; 
-            width: 100%;
-        }
+        .btn-group { display: flex; gap: 10px; width: 100%; }
 
         .beat-btn {
             background: var(--primary);
             color: black;
             border: none;
-            padding: 15px 5px;
-            font-size: 0.9rem;
+            padding: 20px 5px;
+            font-size: 1rem;
             font-weight: 900;
             cursor: pointer;
             box-shadow: 4px 4px 0px white;
             flex: 1;
         }
 
-        .beat-btn.minus { background: var(--accent); color: white; }
-        .beat-btn:active { transform: translate(2px, 2px); box-shadow: 0px 0px 0px white; }
+        .beat-btn.minus { background: #444; color: white; }
+        .beat-btn:active { transform: translate(2px, 2px); box-shadow: 0px 0px 0px; }
 
         /* Modal Styles */
         .modal {
@@ -124,47 +148,49 @@
             max-width: 400px;
         }
 
-        .modal input {
+        .modal input, .modal select {
             width: 100%;
             padding: 12px;
             margin: 10px 0;
             background: #222;
             border: 1px solid var(--primary);
             color: white;
-            text-transform: none;
         }
 
-        .pw-container { position: relative; }
-        .toggle-pw {
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            cursor: pointer;
-            font-size: 0.7rem;
-            color: var(--primary);
-            background: #222;
-            padding: 5px;
+        #insult-ticker {
+            color: var(--accent);
+            font-weight: bold;
+            font-size: 0.8rem;
+            margin-top: 10px;
+            text-align: center;
+            height: 20px;
         }
-
-        .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
     </style>
 </head>
 <body>
 
+    <div class="war-zone">
+        <div style="display: flex; justify-content: space-between; font-size: 0.7rem; margin-bottom: 5px;">
+            <span>SHREYAS DOMINANCE</span>
+            <span>RAM DOMINANCE</span>
+        </div>
+        <div class="power-bar-container">
+            <div id="bar-shreyas"></div>
+            <div id="bar-ram"></div>
+        </div>
+        <div id="insult-ticker">INITIALIZING CHAOS...</div>
+    </div>
+
     <div class="settings-anchor" onclick="openModal()">⚙️</div>
 
     <div class="main-wrapper">
-
-        <!-- RAM LOGGED IN (Hitting Shreyas) -->
-        <div class="container">
+        <!-- Target: Shreyas (Handled by RAM) -->
+        <div class="container" id="cont-shreyas">
             <h1>ASS BEATER</h1>
-            <div class="target-label">TARGET: SHREYAS</div>
-            <p style="font-size: 0.7rem; letter-spacing: 1px;">A-Handler: RAM</p>
-            
+            <div style="color:var(--shreyas-color); font-weight: bold;">TARGET: SHREYAS</div>
+            <p style="font-size: 0.6rem;">A-Handler: RAM</p>
             <div class="counter" id="counter-shreyas">0</div>
             <div class="rank" id="rank-shreyas">PEACEFUL CITIZEN</div>
-            
             <div class="btn-group">
                 <button class="beat-btn minus" onclick="handleAction('ram', -1)">PARDON</button>
                 <button class="beat-btn" onclick="handleAction('ram', 1)">BEAT ASS</button>
@@ -172,14 +198,13 @@
             <button onclick="handleReset('ram')" style="background:none; border:none; color:#444; margin-top:15px; cursor:pointer; font-size: 0.6rem;">WIPE DATA</button>
         </div>
 
-        <div class="container">
+        <!-- Target: Ram (Handled by SHREYAS) -->
+        <div class="container" id="cont-ram">
             <h1>ASS BEATER</h1>
-            <div class="target-label">TARGET: RAM</div>
-            <p style="font-size: 0.7rem; letter-spacing: 1px;">A-Handler: SHREYAS</p>
-            
+            <div style="color:var(--ram-color); font-weight: bold;">TARGET: RAM</div>
+            <p style="font-size: 0.6rem;">A-Handler: SHREYAS</p>
             <div class="counter" id="counter-ram">0</div>
             <div class="rank" id="rank-ram">PEACEFUL CITIZEN</div>
-            
             <div class="btn-group">
                 <button class="beat-btn minus" onclick="handleAction('shreyas', -1)">PARDON</button>
                 <button class="beat-btn" onclick="handleAction('shreyas', 1)">BEAT ASS</button>
@@ -191,26 +216,17 @@
     <!-- Password Modal -->
     <div id="pwModal" class="modal">
         <div class="modal-content">
-            <h3 style="margin-top:0">MANAGE PASSWORDS</h3>
-            <label style="font-size: 0.7rem;">WHO ARE YOU?</label>
-            <select id="userSelect" style="width:100%; padding:10px; margin: 10px 0; background: #222; color:white; border: 1px solid var(--primary);">
+            <h3 style="margin-top:0">SYSTEM SETTINGS</h3>
+            <label style="font-size: 0.7rem;">USER SELECT</label>
+            <select id="userSelect">
                 <option value="shreyas">SHREYAS</option>
                 <option value="ram">RAM</option>
             </select>
-            
-            <div class="pw-container">
-                <input type="password" id="currPass" placeholder="Current Password">
-                <span class="toggle-pw" onclick="toggleVisibility('currPass')">VIEW</span>
-            </div>
-            
-            <div class="pw-container">
-                <input type="password" id="newPass" placeholder="New Password">
-                <span class="toggle-pw" onclick="toggleVisibility('newPass')">VIEW</span>
-            </div>
-
-            <div class="modal-btns">
-                <button class="beat-btn" style="background:#444; color:white;" onclick="closeModal()">CANCEL</button>
-                <button class="beat-btn" onclick="updatePassword()">SAVE NEW</button>
+            <input type="password" id="currPass" placeholder="Current Password">
+            <input type="password" id="newPass" placeholder="New Password">
+            <div class="btn-group" style="margin-top:20px;">
+                <button class="beat-btn minus" onclick="closeModal()">EXIT</button>
+                <button class="beat-btn" onclick="updatePassword()">SAVE</button>
             </div>
         </div>
     </div>
@@ -231,8 +247,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     
-    // shreyas doc = Shreyas's actions (hitting ram)
-    // ram doc = Ram's actions (hitting shreyas)
     const refs = {
         shreyas: doc(db, "projects", "shreyas_hitting_ram"),
         ram: doc(db, "projects", "ram_hitting_shreyas")
@@ -240,18 +254,25 @@
 
     const ranks = [
         { min: 0, text: "PEACEFUL CITIZEN" },
-        { min: 5, text: "MINOR INCONVENIENCE" },
+        { min: 5, text: "MINOR NUISANCE" },
         { min: 15, text: "PUBLIC ENEMY" },
         { min: 30, text: "CERTIFIED THREAT" },
         { min: 50, text: "APOCALYPTIC MENACE" },
-        { min: 100, text: "DOOMSDAY PROTOCOL" }
+        { min: 100, text: "GOD OF DESTRUCTION" }
+    ];
+
+    const insults = [
+        "Someone call an ambulance... but not for me.",
+        "Stop, stop! He's already dead!",
+        "Absolute carnage in the arena.",
+        "Imagine being this much of a target.",
+        "The disrespect is palpable."
     ];
 
     async function initDB() {
         for (const key in refs) {
             const snap = await getDoc(refs[key]);
             if (!snap.exists()) {
-                // Corrected Passwords per request
                 const defaultPass = (key === 'shreyas') ? "1234" : "shreyassbeat";
                 await setDoc(refs[key], { count: 0, password: defaultPass });
             }
@@ -259,60 +280,95 @@
     }
     initDB();
 
+    // Listeners
     onSnapshot(refs.shreyas, (doc) => updateUI('ram', doc));
     onSnapshot(refs.ram, (doc) => updateUI('shreyas', doc));
 
     function updateUI(targetId, doc) {
         if (doc.exists()) {
             const val = doc.data().count || 0;
-            document.getElementById(`counter-${targetId}`).innerText = val;
+            const el = document.getElementById(`counter-${targetId}`);
+            
+            // Visual feedback on change
+            if(el.innerText != val) {
+                const container = document.getElementById(`cont-${targetId}`);
+                container.classList.add('shake');
+                setTimeout(() => container.classList.remove('shake'), 400);
+            }
+
+            el.innerText = val;
             const currentRank = [...ranks].reverse().find(r => val >= r.min);
-            document.getElementById(`rank-${targetId}`).innerText = currentRank ? currentRank.text : ranks[0].text;
+            document.getElementById(`rank-${targetId}`).innerText = currentRank.text;
+            
+            updatePowerBar();
+        }
+    }
+
+    function updatePowerBar() {
+        const sVal = parseInt(document.getElementById('counter-shreyas').innerText) || 0;
+        const rVal = parseInt(document.getElementById('counter-ram').innerText) || 0;
+        const total = sVal + rVal;
+        
+        if (total > 0) {
+            const sPerc = (sVal / total) * 100;
+            const rPerc = (rVal / total) * 100;
+            document.getElementById('bar-shreyas').style.width = sPerc + "%";
+            document.getElementById('bar-ram').style.width = rPerc + "%";
+            
+            if(Math.random() > 0.7) {
+                document.getElementById('insult-ticker').innerText = insults[Math.floor(Math.random()*insults.length)];
+            }
         }
     }
 
     window.handleAction = async (user, change) => {
-        const input = prompt(`Enter SECRET Passcode For ${user.toUpperCase()}:`);
+        const input = prompt(`CONFIRM IDENTITY [${user.toUpperCase()}]:`);
         const snap = await getDoc(refs[user]);
+        
         if (input === snap.data().password) {
-            if(change > 0) confetti({ particleCount: 80, spread: 50, origin: { y: 0.8 }, colors: ['#fbbf24', '#ef4444'] });
+            // Haptics
+            if (window.navigator.vibrate) window.navigator.vibrate([50, 30, 50]);
+            
+            // Confetti for hits
+            if(change > 0) {
+                confetti({ 
+                    particleCount: 100, 
+                    spread: 70, 
+                    origin: { y: 0.6 },
+                    colors: [user === 'ram' ? '#3b82f6' : '#ef4444', '#fbbf24']
+                });
+            }
+            
             await updateDoc(refs[user], { count: increment(change) });
         } else {
-            alert("galat PASSWORD smarty chaddi.");
+            alert("WRONG PASSWORD. THE AUDACITY.");
         }
     };
 
     window.handleReset = async (user) => {
-        const input = prompt(`VERIFY PASSWORD TO RESET:`);
+        const input = prompt(`MASTER RESET PASSWORD:`);
         const snap = await getDoc(refs[user]);
-        if (input === snap.data().password && confirm("ARE YOU SURE?")) {
+        if (input === snap.data().password && confirm("WIPE ALL PROGRESS?")) {
             await updateDoc(refs[user], { count: 0 });
         }
     };
 
     window.openModal = () => document.getElementById('pwModal').style.display = 'flex';
     window.closeModal = () => document.getElementById('pwModal').style.display = 'none';
-    window.toggleVisibility = (id) => {
-        const el = document.getElementById(id);
-        el.type = el.type === "password" ? "text" : "password";
-    };
 
     window.updatePassword = async () => {
         const user = document.getElementById('userSelect').value;
         const curr = document.getElementById('currPass').value;
         const next = document.getElementById('newPass').value;
-        
-        if(!next) return alert("ENTER NEW PASSWORD");
+        if(!next) return alert("EMPTY PASSWORD NOT ALLOWED");
 
         const snap = await getDoc(refs[user]);
         if (curr === snap.data().password) {
             await updateDoc(refs[user], { password: next });
-            alert("SUCCESSFULLY CHANGED!");
+            alert("ENCRYPTION UPDATED.");
             closeModal();
-            document.getElementById('currPass').value = "";
-            document.getElementById('newPass').value = "";
         } else {
-            alert("CURRENT PASSWORD INCORRECT.");
+            alert("CURRENT PASSWORD INVALID.");
         }
     };
 </script>
