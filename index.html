@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -33,11 +34,10 @@
 
         /* --- LAYOUT RESTRUCTURE --- */
         
-        /* 1. Settings (Now scrolls with page) */
         .settings-header {
             width: 100%;
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between; /* Adjusted for two icons */
             padding: 20px;
             max-width: 400px;
         }
@@ -53,7 +53,6 @@
         }
         .settings-btn:active { transform: translate(2px, 2px); box-shadow: 0px 0px 0px; }
 
-        /* 2. Power Bar Section (Now scrolls with page) */
         .war-zone {
             width: 90%;
             max-width: 400px;
@@ -79,7 +78,6 @@
             font-weight: bold;
         }
 
-        /* 3. Main Containers */
         .main-wrapper {
             display: flex;
             flex-direction: column;
@@ -99,7 +97,6 @@
             max-width: 400px;
         }
 
-        /* --- UI ELEMENTS --- */
         h1 { font-size: 1.8rem; margin: 0; letter-spacing: -1px; }
         .target-label { font-size: 1.1rem; margin: 5px 0; border-bottom: 2px solid #333; padding-bottom: 5px; font-weight: 900;}
         
@@ -135,7 +132,6 @@
         .beat-btn.minus { background: #444; color: white; }
         .beat-btn:active { transform: translate(2px, 2px); box-shadow: 0px 0px 0px; }
 
-        /* Shake Animation */
         @keyframes shake {
             0% { transform: translate(1px, 1px) rotate(0deg); }
             20% { transform: translate(-3px, 0px) rotate(1deg); }
@@ -144,7 +140,6 @@
         }
         .shake { animation: shake 0.3s ease-in-out; }
 
-        /* Modal */
         .modal {
             display: none;
             position: fixed;
@@ -157,21 +152,29 @@
             background: var(--card);
             border: 4px solid var(--primary);
             padding: 2rem; width: 90%; max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
         }
         .modal input, .modal select {
             width: 100%; padding: 12px; margin: 10px 0;
             background: #222; border: 1px solid var(--primary); color: white;
         }
+        .history-item {
+            border-bottom: 1px solid #333;
+            padding: 10px 0;
+            font-size: 0.7rem;
+            text-align: left;
+        }
+        .history-user { font-weight: bold; color: var(--primary); }
     </style>
 </head>
 <body>
 
-    <!-- 1. SETTINGS FIRST -->
     <div class="settings-header">
+        <div class="settings-btn" onclick="openHistory()">📜</div>
         <div class="settings-btn" onclick="openModal()">⚙️</div>
     </div>
 
-    <!-- 2. POWER BAR SECOND -->
     <div class="war-zone">
         <div style="display: flex; justify-content: space-between; font-size: 0.6rem; margin-bottom: 5px; font-weight: bold;">
             <span style="color:var(--shreyas-color)">SHREYAS TARGETED</span>
@@ -184,9 +187,7 @@
         <div id="insult-ticker">WAITING FOR FIRST STRIKE...</div>
     </div>
 
-    <!-- 3. CONTAINERS THIRD -->
     <div class="main-wrapper">
-        <!-- Target: Shreyas (Beaten by Ram) -->
         <div class="container" id="cont-shreyas">
             <h1>ASS BEATER</h1>
             <div class="target-label" style="color:var(--shreyas-color)">TARGET: SHREYAS</div>
@@ -200,7 +201,6 @@
             <button onclick="handleReset('ram')" style="background:none; border:none; color:#444; margin-top:15px; cursor:pointer; font-size: 0.6rem;">WIPE DATA</button>
         </div>
 
-        <!-- Target: Ram (Beaten by Shreyas) -->
         <div class="container" id="cont-ram">
             <h1>ASS BEATER</h1>
             <div class="target-label" style="color:var(--ram-color)">TARGET: RAM</div>
@@ -215,7 +215,6 @@
         </div>
     </div>
 
-    <!-- Modals remain fixed -->
     <div id="pwModal" class="modal">
         <div class="modal-content">
             <h3 style="margin-top:0">SYSTEM ACCESS</h3>
@@ -232,9 +231,18 @@
         </div>
     </div>
 
+    <!-- History Modal -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-top:0">BATTLE LOG</h3>
+            <div id="history-list"></div>
+            <button class="beat-btn" style="margin-top:20px; width:100%;" onclick="closeHistory()">CLOSE</button>
+        </div>
+    </div>
+
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, doc, setDoc, onSnapshot, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, onSnapshot, getDoc, updateDoc, increment, arrayUnion } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDx8q_rUrJv9hLQvHxJmnZ0m39bkhBK-UU",
@@ -249,8 +257,8 @@
     const db = getFirestore(app);
     
     const refs = {
-        shreyas: doc(db, "projects", "shreyas_hitting_ram"), // Ram's control
-        ram: doc(db, "projects", "ram_hitting_shreyas")     // Shreyas's control
+        shreyas: doc(db, "projects", "shreyas_hitting_ram"), 
+        ram: doc(db, "projects", "ram_hitting_shreyas")     
     };
 
     const ranks = [
@@ -263,27 +271,33 @@
     ];
 
     const messages = ["Ouch.", "Violent today, aren't we?", "Call the police.", "Absolute savagery.", "The bar is shifting!"];
+    let historyData = { ram: [], shreyas: [] };
 
     async function initDB() {
         for (const key in refs) {
             const snap = await getDoc(refs[key]);
             if (!snap.exists()) {
                 const defaultPass = (key === 'shreyas') ? "1234" : "shreyassbeat";
-                await setDoc(refs[key], { count: 0, password: defaultPass });
+                await setDoc(refs[key], { count: 0, password: defaultPass, history: [] });
             }
         }
     }
     initDB();
 
-    onSnapshot(refs.shreyas, (doc) => updateUI('ram', doc));
-    onSnapshot(refs.ram, (doc) => updateUI('shreyas', doc));
+    onSnapshot(refs.shreyas, (doc) => {
+        updateUI('ram', doc);
+        if(doc.exists()) historyData.ram = doc.data().history || [];
+    });
+    onSnapshot(refs.ram, (doc) => {
+        updateUI('shreyas', doc);
+        if(doc.exists()) historyData.shreyas = doc.data().history || [];
+    });
 
     function updateUI(targetId, doc) {
         if (doc.exists()) {
             const val = doc.data().count || 0;
             const el = document.getElementById(`counter-${targetId}`);
             
-            // Screen Shake Effect
             if(el.innerText != val && el.innerText != "") {
                 const container = document.getElementById(`cont-${targetId}`);
                 container.classList.add('shake');
@@ -319,24 +333,61 @@
         const input = prompt(`PASSCODE [${user.toUpperCase()}]:`);
         const snap = await getDoc(refs[user]);
         if (input === snap.data().password) {
-            if (window.navigator.vibrate) window.navigator.vibrate(100);
+            let reason = "";
             if(change > 0) {
+                reason = prompt("REASON FOR BEATING ASS:") || "No reason, just pure hate.";
+                if (window.navigator.vibrate) window.navigator.vibrate(100);
                 confetti({ 
                     particleCount: 50, spread: 60, 
                     colors: [user === 'ram' ? '#3b82f6' : '#ef4444', '#ffffff'] 
                 });
+            } else {
+                reason = "Pardoned by mercy.";
             }
-            await updateDoc(refs[user], { count: increment(change) });
+
+            const historyEntry = {
+                reason: reason,
+                time: new Date().toLocaleTimeString(),
+                type: change > 0 ? "BEAT" : "PARDON"
+            };
+
+            await updateDoc(refs[user], { 
+                count: increment(change),
+                history: arrayUnion(historyEntry)
+            });
         } else {
             alert("WRONG PASSWORD smart CHADDI.");
         }
     };
 
+    window.openHistory = () => {
+        const list = document.getElementById('history-list');
+        list.innerHTML = "";
+        
+        const combined = [
+            ...historyData.ram.map(h => ({...h, from: 'RAM', to: 'SHREYAS'})),
+            ...historyData.shreyas.map(h => ({...h, from: 'SHREYAS', to: 'RAM'}))
+        ].sort((a,b) => b.time.localeCompare(a.time)).slice(0, 10);
+
+        if(combined.length === 0) list.innerHTML = "<p>No blood spilled yet.</p>";
+
+        combined.forEach(item => {
+            const div = document.createElement('div');
+            div.className = "history-item";
+            div.innerHTML = `<span class="history-user">${item.from}</span> ${item.type}ED <span class="history-user">${item.to}</span><br>
+                             <span style="color:#888; font-size:0.6rem;">[${item.time}]</span> ${item.reason}`;
+            list.appendChild(div);
+        });
+        document.getElementById('historyModal').style.display = 'flex';
+    };
+
+    window.closeHistory = () => document.getElementById('historyModal').style.display = 'none';
+
     window.handleReset = async (user) => {
         const input = prompt(`ADMIN PASSWORD:`);
         const snap = await getDoc(refs[user]);
         if (input === snap.data().password && confirm("ARE YOU SURE?")) {
-            await updateDoc(refs[user], { count: 0 });
+            await updateDoc(refs[user], { count: 0, history: [] });
         }
     };
 
