@@ -31,7 +31,6 @@
             padding-bottom: 50px;
         }
 
-        /* --- LAYOUT --- */
         .settings-header {
             width: 100%;
             display: flex;
@@ -130,14 +129,6 @@
         .beat-btn.minus { background: #444; color: white; }
         .beat-btn:active { transform: translate(2px, 2px); box-shadow: 0px 0px 0px; }
 
-        @keyframes shake {
-            0% { transform: translate(1px, 1px) rotate(0deg); }
-            20% { transform: translate(-3px, 0px) rotate(1deg); }
-            40% { transform: translate(3px, 2px) rotate(0deg); }
-            100% { transform: translate(0, 0) rotate(0deg); }
-        }
-        .shake { animation: shake 0.3s ease-in-out; }
-
         .modal {
             display: none;
             position: fixed;
@@ -160,16 +151,17 @@
 
         /* History Styling */
         .history-item {
-            border-left: 4px solid #333;
-            padding: 10px;
-            margin-bottom: 10px;
-            font-size: 0.75rem;
+            border-left: 5px solid #333;
+            padding: 12px;
+            margin-bottom: 12px;
+            font-size: 0.8rem;
             text-align: left;
             background: #0a0a0a;
+            text-transform: none;
         }
-        .hist-blue { border-color: var(--shreyas-color); }
-        .hist-red { border-color: var(--ram-color); }
-        .history-user { font-weight: bold; }
+        .hist-shreyas { border-color: var(--shreyas-color); } /* Shreyas acting */
+        .hist-ram { border-color: var(--ram-color); } /* Ram acting */
+        .history-user { font-weight: bold; text-transform: uppercase; }
     </style>
 </head>
 <body>
@@ -192,7 +184,6 @@
     </div>
 
     <div class="main-wrapper">
-        <!-- Target: Shreyas (Beaten by Ram) -->
         <div class="container" id="cont-shreyas">
             <h1>ASS BEATER</h1>
             <div class="target-label" style="color:var(--shreyas-color)">TARGET: SHREYAS</div>
@@ -206,7 +197,6 @@
             <button onclick="handleReset('ram')" style="background:none; border:none; color:#444; margin-top:15px; cursor:pointer; font-size: 0.6rem;">WIPE DATA</button>
         </div>
 
-        <!-- Target: Ram (Beaten by Shreyas) -->
         <div class="container" id="cont-ram">
             <h1>ASS BEATER</h1>
             <div class="target-label" style="color:var(--ram-color)">TARGET: RAM</div>
@@ -262,8 +252,8 @@
     const db = getFirestore(app);
     
     const refs = {
-        shreyas: doc(db, "projects", "shreyas_hitting_ram"), 
-        ram: doc(db, "projects", "ram_hitting_shreyas")     
+        shreyas: doc(db, "projects", "shreyas_hitting_ram"), // Logic: Handler Ram hitting Shreyas
+        ram: doc(db, "projects", "ram_hitting_shreyas")     // Logic: Handler Shreyas hitting Ram
     };
 
     const ranks = [
@@ -275,41 +265,21 @@
         { min: 100, text: "TERMINATOR" }
     ];
 
-    const messages = ["Ouch.", "Violent today, aren't we?", "Call the police.", "Absolute savagery.", "The bar is shifting!"];
-    let historyData = { ram: [], shreyas: [] };
-
-    async function initDB() {
-        for (const key in refs) {
-            const snap = await getDoc(refs[key]);
-            if (!snap.exists()) {
-                const defaultPass = (key === 'shreyas') ? "1234" : "shreyassbeat";
-                await setDoc(refs[key], { count: 0, password: defaultPass, history: [] });
-            }
-        }
-    }
-    initDB();
+    let historyData = { ram_actions: [], shreyas_actions: [] };
 
     onSnapshot(refs.shreyas, (doc) => {
-        updateUI('ram', doc);
-        if(doc.exists()) historyData.ram = doc.data().history || [];
+        updateUI('shreyas', doc);
+        if(doc.exists()) historyData.ram_actions = doc.data().history || [];
     });
     onSnapshot(refs.ram, (doc) => {
-        updateUI('shreyas', doc);
-        if(doc.exists()) historyData.shreyas = doc.data().history || [];
+        updateUI('ram', doc);
+        if(doc.exists()) historyData.shreyas_actions = doc.data().history || [];
     });
 
     function updateUI(targetId, doc) {
         if (doc.exists()) {
             const val = doc.data().count || 0;
-            const el = document.getElementById(`counter-${targetId}`);
-            
-            if(el.innerText != val && el.innerText != "") {
-                const container = document.getElementById(`cont-${targetId}`);
-                container.classList.add('shake');
-                setTimeout(() => container.classList.remove('shake'), 300);
-            }
-
-            el.innerText = val;
+            document.getElementById(`counter-${targetId}`).innerText = val;
             const currentRank = [...ranks].reverse().find(r => val >= r.min);
             document.getElementById(`rank-${targetId}`).innerText = currentRank.text;
             refreshPowerBar();
@@ -320,48 +290,37 @@
         const sVal = parseInt(document.getElementById('counter-shreyas').innerText) || 0;
         const rVal = parseInt(document.getElementById('counter-ram').innerText) || 0;
         const total = sVal + rVal;
-        
         if (total > 0) {
-            const sPerc = (sVal / total) * 100;
-            const rPerc = (rVal / total) * 100;
-            document.getElementById('bar-shreyas').style.width = sPerc + "%";
-            document.getElementById('bar-ram').style.width = rPerc + "%";
-            
-            if(Math.random() > 0.8) {
-                document.getElementById('insult-ticker').innerText = messages[Math.floor(Math.random()*messages.length)];
-            }
+            document.getElementById('bar-shreyas').style.width = (sVal / total * 100) + "%";
+            document.getElementById('bar-ram').style.width = (rVal / total * 100) + "%";
         }
     }
 
-    window.handleAction = async (user, change) => {
-        const input = prompt(`PASSCODE [${user.toUpperCase()}]:`);
-        const snap = await getDoc(refs[user]);
+    window.handleAction = async (handler, change) => {
+        const input = prompt(`PASSCODE [${handler.toUpperCase()}]:`);
+        const snap = await getDoc(refs[handler === 'ram' ? 'shreyas' : 'ram']);
         if (input === snap.data().password) {
             let reason = "";
             if(change > 0) {
-                reason = prompt("REASON FOR BEATING ASS:") || "No reason, just pure hate.";
-                if (window.navigator.vibrate) window.navigator.vibrate(100);
-                confetti({ 
-                    particleCount: 50, spread: 60, 
-                    colors: [user === 'ram' ? '#3b82f6' : '#ef4444', '#ffffff'] 
-                });
+                reason = prompt("REASON FOR BEATING ASS:") || "No reason, just violence.";
+                confetti({ particleCount: 50, spread: 60, colors: [handler === 'ram' ? '#ef4444' : '#3b82f6', '#ffffff'] });
             } else {
-                reason = "Pardoned by mercy.";
+                reason = "Pardoned.";
             }
 
             const historyEntry = {
                 reason: reason,
                 timestamp: Date.now(),
                 timeStr: new Date().toLocaleTimeString(),
-                type: change > 0 ? "BEAT" : "PARDON"
+                type: change > 0 ? "BEAT" : "PARDONED"
             };
 
-            await updateDoc(refs[user], { 
+            await updateDoc(refs[handler === 'ram' ? 'shreyas' : 'ram'], { 
                 count: increment(change),
                 history: arrayUnion(historyEntry)
             });
         } else {
-            alert("WRONG PASSWORD smart CHADDI.");
+            alert("WRONG PASSWORD.");
         }
     };
 
@@ -369,20 +328,15 @@
         const list = document.getElementById('history-list');
         list.innerHTML = "";
         
-        // Corrected Mapping Logic: 
-        // refs.shreyas is RAM beating SHREYAS
-        // refs.ram is SHREYAS beating RAM
         const combined = [
-            ...historyData.ram.map(h => ({...h, from: 'RAM', to: 'SHREYAS', colorClass: 'hist-red'})),
-            ...historyData.shreyas.map(h => ({...h, from: 'SHREYAS', to: 'RAM', colorClass: 'hist-blue'}))
-        ].sort((a,b) => b.timestamp - a.timestamp).slice(0, 15);
-
-        if(combined.length === 0) list.innerHTML = "<p>No blood spilled yet.</p>";
+            ...historyData.ram_actions.map(h => ({...h, from: 'RAM', to: 'SHREYAS', color: 'var(--ram-color)', cls: 'hist-ram'})),
+            ...historyData.shreyas_actions.map(h => ({...h, from: 'SHREYAS', to: 'RAM', color: 'var(--shreyas-color)', cls: 'hist-shreyas'}))
+        ].sort((a,b) => (b.timestamp || 0) - (a.timestamp || 0)).slice(0, 20);
 
         combined.forEach(item => {
             const div = document.createElement('div');
-            div.className = `history-item ${item.colorClass}`;
-            div.innerHTML = `<span class="history-user" style="color: ${item.from === 'RAM' ? 'var(--ram-color)' : 'var(--shreyas-color)'}">${item.from}</span> ${item.type}ED <span class="history-user">${item.to}</span><br>
+            div.className = `history-item ${item.cls}`;
+            div.innerHTML = `<span class="history-user" style="color:${item.color}">${item.from}</span> ${item.type} <span class="history-user">${item.to}</span><br>
                              <span style="color:#666; font-size:0.6rem;">[${item.timeStr}]</span> ${item.reason}`;
             list.appendChild(div);
         });
@@ -390,29 +344,30 @@
     };
 
     window.closeHistory = () => document.getElementById('historyModal').style.display = 'none';
-
-    window.handleReset = async (user) => {
-        const input = prompt(`ADMIN PASSWORD:`);
-        const snap = await getDoc(refs[user]);
-        if (input === snap.data().password && confirm("ARE YOU SURE?")) {
-            await updateDoc(refs[user], { count: 0, history: [] });
-        }
-    };
-
     window.openModal = () => document.getElementById('pwModal').style.display = 'flex';
     window.closeModal = () => document.getElementById('pwModal').style.display = 'none';
 
     window.updatePassword = async () => {
         const user = document.getElementById('userSelect').value;
+        const targetRef = user === 'shreyas' ? refs.ram : refs.shreyas;
         const curr = document.getElementById('currPass').value;
         const next = document.getElementById('newPass').value;
-        const snap = await getDoc(refs[user]);
+        const snap = await getDoc(targetRef);
         if (curr === snap.data().password) {
-            await updateDoc(refs[user], { password: next });
+            await updateDoc(targetRef, { password: next });
             alert("PASSWORD UPDATED");
             closeModal();
         } else {
             alert("OLD PASSWORD WRONG");
+        }
+    };
+
+    window.handleReset = async (handler) => {
+        const input = prompt(`ADMIN PASSWORD:`);
+        const targetRef = handler === 'ram' ? refs.shreyas : refs.ram;
+        const snap = await getDoc(targetRef);
+        if (input === snap.data().password && confirm("WIPE EVERYTHING?")) {
+            await updateDoc(targetRef, { count: 0, history: [] });
         }
     };
 </script>
