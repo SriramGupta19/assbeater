@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -32,12 +31,11 @@
             padding-bottom: 50px;
         }
 
-        /* --- LAYOUT RESTRUCTURE --- */
-        
+        /* --- LAYOUT --- */
         .settings-header {
             width: 100%;
             display: flex;
-            justify-content: space-between; /* Adjusted for two icons */
+            justify-content: space-between;
             padding: 20px;
             max-width: 400px;
         }
@@ -159,13 +157,19 @@
             width: 100%; padding: 12px; margin: 10px 0;
             background: #222; border: 1px solid var(--primary); color: white;
         }
+
+        /* History Styling */
         .history-item {
-            border-bottom: 1px solid #333;
-            padding: 10px 0;
-            font-size: 0.7rem;
+            border-left: 4px solid #333;
+            padding: 10px;
+            margin-bottom: 10px;
+            font-size: 0.75rem;
             text-align: left;
+            background: #0a0a0a;
         }
-        .history-user { font-weight: bold; color: var(--primary); }
+        .hist-blue { border-color: var(--shreyas-color); }
+        .hist-red { border-color: var(--ram-color); }
+        .history-user { font-weight: bold; }
     </style>
 </head>
 <body>
@@ -188,6 +192,7 @@
     </div>
 
     <div class="main-wrapper">
+        <!-- Target: Shreyas (Beaten by Ram) -->
         <div class="container" id="cont-shreyas">
             <h1>ASS BEATER</h1>
             <div class="target-label" style="color:var(--shreyas-color)">TARGET: SHREYAS</div>
@@ -201,6 +206,7 @@
             <button onclick="handleReset('ram')" style="background:none; border:none; color:#444; margin-top:15px; cursor:pointer; font-size: 0.6rem;">WIPE DATA</button>
         </div>
 
+        <!-- Target: Ram (Beaten by Shreyas) -->
         <div class="container" id="cont-ram">
             <h1>ASS BEATER</h1>
             <div class="target-label" style="color:var(--ram-color)">TARGET: RAM</div>
@@ -231,7 +237,6 @@
         </div>
     </div>
 
-    <!-- History Modal -->
     <div id="historyModal" class="modal">
         <div class="modal-content">
             <h3 style="margin-top:0">BATTLE LOG</h3>
@@ -307,7 +312,6 @@
             el.innerText = val;
             const currentRank = [...ranks].reverse().find(r => val >= r.min);
             document.getElementById(`rank-${targetId}`).innerText = currentRank.text;
-            
             refreshPowerBar();
         }
     }
@@ -347,7 +351,8 @@
 
             const historyEntry = {
                 reason: reason,
-                time: new Date().toLocaleTimeString(),
+                timestamp: Date.now(),
+                timeStr: new Date().toLocaleTimeString(),
                 type: change > 0 ? "BEAT" : "PARDON"
             };
 
@@ -364,18 +369,21 @@
         const list = document.getElementById('history-list');
         list.innerHTML = "";
         
+        // Corrected Mapping Logic: 
+        // refs.shreyas is RAM beating SHREYAS
+        // refs.ram is SHREYAS beating RAM
         const combined = [
-            ...historyData.ram.map(h => ({...h, from: 'RAM', to: 'SHREYAS'})),
-            ...historyData.shreyas.map(h => ({...h, from: 'SHREYAS', to: 'RAM'}))
-        ].sort((a,b) => b.time.localeCompare(a.time)).slice(0, 10);
+            ...historyData.ram.map(h => ({...h, from: 'RAM', to: 'SHREYAS', colorClass: 'hist-red'})),
+            ...historyData.shreyas.map(h => ({...h, from: 'SHREYAS', to: 'RAM', colorClass: 'hist-blue'}))
+        ].sort((a,b) => b.timestamp - a.timestamp).slice(0, 15);
 
         if(combined.length === 0) list.innerHTML = "<p>No blood spilled yet.</p>";
 
         combined.forEach(item => {
             const div = document.createElement('div');
-            div.className = "history-item";
-            div.innerHTML = `<span class="history-user">${item.from}</span> ${item.type}ED <span class="history-user">${item.to}</span><br>
-                             <span style="color:#888; font-size:0.6rem;">[${item.time}]</span> ${item.reason}`;
+            div.className = `history-item ${item.colorClass}`;
+            div.innerHTML = `<span class="history-user" style="color: ${item.from === 'RAM' ? 'var(--ram-color)' : 'var(--shreyas-color)'}">${item.from}</span> ${item.type}ED <span class="history-user">${item.to}</span><br>
+                             <span style="color:#666; font-size:0.6rem;">[${item.timeStr}]</span> ${item.reason}`;
             list.appendChild(div);
         });
         document.getElementById('historyModal').style.display = 'flex';
