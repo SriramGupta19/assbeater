@@ -129,7 +129,6 @@
         .beat-btn.minus { background: #444; color: white; }
         .beat-btn:active { transform: translate(2px, 2px); box-shadow: 0px 0px 0px; }
 
-        /* Modal */
         .modal {
             display: none;
             position: fixed;
@@ -145,8 +144,7 @@
             max-height: 80vh;
             overflow-y: auto;
         }
-        
-        /* History Item Styling */
+
         .history-item {
             border-left: 5px solid #333;
             padding: 10px;
@@ -181,6 +179,7 @@
     </div>
 
     <div class="main-wrapper">
+        <!-- Handler: RAM (Hits Shreyas) -->
         <div class="container" id="cont-shreyas">
             <h1>ASS BEATER</h1>
             <div class="target-label" style="color:var(--shreyas-color)">TARGET: SHREYAS</div>
@@ -194,6 +193,7 @@
             <button onclick="handleReset('ram')" style="background:none; border:none; color:#444; margin-top:15px; cursor:pointer; font-size: 0.6rem;">WIPE DATA</button>
         </div>
 
+        <!-- Handler: SHREYAS (Hits Ram) -->
         <div class="container" id="cont-ram">
             <h1>ASS BEATER</h1>
             <div class="target-label" style="color:var(--ram-color)">TARGET: RAM</div>
@@ -248,10 +248,10 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     
-    // BACK TO ORIGINAL REF LOGIC
+    // Logic: 'shreyas' document is the count for Target Shreyas (Ram hits him)
     const refs = {
-        shreyas: doc(db, "projects", "shreyas_hitting_ram"), 
-        ram: doc(db, "projects", "ram_hitting_shreyas")     
+        shreyas: doc(db, "projects", "ram_hitting_shreyas"), 
+        ram: doc(db, "projects", "shreyas_hitting_ram")     
     };
 
     const ranks = [
@@ -296,14 +296,16 @@
         }
     }
 
-    window.handleAction = async (user, change) => {
-        const input = prompt(`PASSCODE [${user.toUpperCase()}]:`);
-        const snap = await getDoc(refs[user]);
+    window.handleAction = async (handler, change) => {
+        const input = prompt(`PASSCODE [${handler.toUpperCase()}]:`);
+        // If Ram hits, update 'shreyas' target doc. If Shreyas hits, update 'ram' target doc.
+        const targetDoc = handler === 'ram' ? refs.shreyas : refs.ram;
+        const snap = await getDoc(targetDoc);
         if (input === snap.data().password) {
             let reason = "";
             if(change > 0) {
                 reason = prompt("REASON FOR BEATING ASS:") || "No reason, just pure hate.";
-                confetti({ particleCount: 50, spread: 60, colors: [user === 'ram' ? '#3b82f6' : '#ef4444', '#ffffff'] });
+                confetti({ particleCount: 50, spread: 60, colors: [handler === 'ram' ? '#ef4444' : '#3b82f6', '#ffffff'] });
             } else {
                 reason = "Pardoned.";
             }
@@ -315,7 +317,7 @@
                 type: change > 0 ? "BEAT" : "PARDONED"
             };
 
-            await updateDoc(refs[user], { 
+            await updateDoc(targetDoc, { 
                 count: increment(change),
                 history: arrayUnion(historyEntry)
             });
@@ -328,12 +330,12 @@
         const list = document.getElementById('history-list');
         list.innerHTML = "";
         
-        // SWAP HAPPENS HERE FOR THE LOG:
-        // 'ram' document history = RAM is hitting SHREYAS
-        // 'shreyas' document history = SHREYAS is hitting RAM
+        // Log Mapping:
+        // historyData.shreyas is actually records of RAM hitting SHREYAS
+        // historyData.ram is actually records of SHREYAS hitting RAM
         const combined = [
-            ...historyData.ram.map(h => ({...h, from: 'RAM', to: 'SHREYAS', cls: 'hist-ram-act', color: 'var(--ram-color)'})),
-            ...historyData.shreyas.map(h => ({...h, from: 'SHREYAS', to: 'RAM', cls: 'hist-shreyas-act', color: 'var(--shreyas-color)'}))
+            ...historyData.shreyas.map(h => ({...h, from: 'RAM', to: 'SHREYAS', cls: 'hist-ram-act', color: 'var(--ram-color)'})),
+            ...historyData.ram.map(h => ({...h, from: 'SHREYAS', to: 'RAM', cls: 'hist-shreyas-act', color: 'var(--shreyas-color)'}))
         ].sort((a,b) => (b.timestamp || 0) - (a.timestamp || 0)).slice(0, 20);
 
         combined.forEach(item => {
@@ -352,11 +354,12 @@
 
     window.updatePassword = async () => {
         const user = document.getElementById('userSelect').value;
+        const targetDoc = user === 'ram' ? refs.shreyas : refs.ram;
         const curr = document.getElementById('currPass').value;
         const next = document.getElementById('newPass').value;
-        const snap = await getDoc(refs[user]);
+        const snap = await getDoc(targetDoc);
         if (curr === snap.data().password) {
-            await updateDoc(refs[user], { password: next });
+            await updateDoc(targetDoc, { password: next });
             alert("PASSWORD UPDATED");
             closeModal();
         } else {
@@ -364,11 +367,12 @@
         }
     };
 
-    window.handleReset = async (user) => {
+    window.handleReset = async (handler) => {
         const input = prompt(`ADMIN PASSWORD:`);
-        const snap = await getDoc(refs[user]);
+        const targetDoc = handler === 'ram' ? refs.shreyas : refs.ram;
+        const snap = await getDoc(targetDoc);
         if (input === snap.data().password && confirm("WIPE EVERYTHING?")) {
-            await updateDoc(refs[user], { count: 0, history: [] });
+            await updateDoc(targetDoc, { count: 0, history: [] });
         }
     };
 </script>
